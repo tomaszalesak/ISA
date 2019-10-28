@@ -14,27 +14,27 @@
 
 using namespace std;
 
-//DNS header structure
+// DNS header structure
 struct DNS_HEADER
 {
-    unsigned short id; // identification number
+    unsigned short id;          // identification number
 
-    unsigned char rd : 1;     // recursion desired
-    unsigned char tc : 1;     // truncated message
-    unsigned char aa : 1;     // authoritive answer
-    unsigned char opcode : 4; // purpose of message
-    unsigned char qr : 1;     // query/response flag
+    unsigned char rd : 1;       // recursion desired
+    unsigned char tc : 1;       // truncated message
+    unsigned char aa : 1;       // authoritive answer
+    unsigned char opcode : 4;   // purpose of message
+    unsigned char qr : 1;       // query/response flag
 
-    unsigned char rcode : 4; // response code
-    unsigned char cd : 1;    // checking disabled
-    unsigned char ad : 1;    // authenticated data
-    unsigned char z : 1;     // its z! reserved
-    unsigned char ra : 1;    // recursion available
+    unsigned char rcode : 4;    // response code
+    unsigned char cd : 1;       // checking disabled
+    unsigned char ad : 1;       // authenticated data
+    unsigned char z : 1;        // its z! reserved
+    unsigned char ra : 1;       // recursion available
 
-    unsigned short q_count;    // number of question entries
-    unsigned short ans_count;  // number of answer entries
-    unsigned short auth_count; // number of authority entries
-    unsigned short add_count;  // number of resource entries
+    unsigned short q_count;     // number of question entries
+    unsigned short ans_count;   // number of answer entries
+    unsigned short auth_count;  // number of authority entries
+    unsigned short add_count;   // number of resource entries
 };
 
 // function prototypes
@@ -165,8 +165,40 @@ int main(int argc, char *argv[])
 
     memset(query_name, '\0', 255);
 
-    change_hostname_to_dns_query_name(query_name, &address);
+    if(reverse_query_flag)
+    {
+        // IPv4
+        if(strchr(address, '.') != nullptr)
+        {
+            char buf[255];
+            int ret_func_val;
+            ret_func_val = inet_pton(AF_INET, address, &buf);
+            if(ret_func_val < 1)
+                error_exit(EXIT_FAILURE, "Wrong IPv6 address");
+            char in_addr_arpa_string[14] = ".in-addr.arpa";
+            in_addr_arpa_string[0] = 7;
+            in_addr_arpa_string[8] = 4;
 
+
+
+        }
+        // IPv6
+        else if(strchr(address, ':') != nullptr)
+        {
+            
+        }
+        else
+        {
+            error_exit(EXIT_FAILURE, "Expected IPv4 or IPv6");
+        }
+        
+        
+    }
+    else
+    {
+        change_hostname_to_dns_query_name(query_name, &address);
+    }
+    
     cout << query_name << "\n";
 
     index_after_query_name = 12 + strlen(query_name) + 1;
@@ -218,7 +250,17 @@ int main(int argc, char *argv[])
     exit(EXIT_SUCCESS);
 }
 
-void get_arguments(int argc, char **argv, int *help_flag, int *recursion_flag, int *reverse_query_flag, int *AAAA_flag, int *server_flag, char **server, int *port_flag, int *port, char **address)
+void get_arguments(int argc,
+                   char **argv,
+                   int *help_flag,
+                   int *recursion_flag,
+                   int *reverse_query_flag,
+                   int *AAAA_flag,
+                   int *server_flag,
+                   char **server,
+                   int *port_flag,
+                   int *port,
+                   char **address)
 {
     if ((argc == 2) && (strcmp(argv[1], "-h") == 0))
     {
@@ -310,7 +352,7 @@ void show_arguments(const int *help_flag,
 void change_hostname_to_dns_query_name(char *query_name, char **address)
 {
     // www.fit.vutbr.cz -> 3www3fit5vutbr2cz0
-    int previous_index = 0;
+    unsigned int previous_index = 0;
     int length;
 
     strcpy(&query_name[1], *address);
