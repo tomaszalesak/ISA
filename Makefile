@@ -11,7 +11,7 @@ dns: $(SOURCES)
 	$(CC) $(CFLAGS) $(SOURCES) -o $(PROGRAM)
 
 run: all
-	./dns -r -s kazi.fit.vutbr.cz www.fit.vut.cz
+	./dns -r -x -s kazi.fit.vutbr.cz www.fit.vut.cz
 
 test: all
 	echo "TBD"

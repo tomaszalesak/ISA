@@ -83,13 +83,16 @@ int main(int argc, char *argv[])
 
     struct sockaddr_in server_address;
     struct hostent *servent;
+
     memset(&server_address, 0, sizeof(server_address));
     if ((servent = gethostbyname(server)) == NULL)
         error_exit(EXIT_FAILURE, "gethostbyname() failed\n");
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(port);
     memcpy(&server_address.sin_addr, servent->h_addr, servent->h_length);
+
     char str[INET_ADDRSTRLEN];
+
     inet_ntop(AF_INET, &(server_address.sin_addr), str, INET_ADDRSTRLEN);
     cout << str << "\n";
 
@@ -110,6 +113,8 @@ int main(int argc, char *argv[])
 
     if (AAAA_flag)
         query_type = htons(28);
+    else if(reverse_query_flag)
+        query_type = htons(12);
     else
         query_type = htons(1);
 
