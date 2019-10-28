@@ -60,6 +60,7 @@ void show_arguments(const int *help_flag,
                     const int *port_flag,
                     const int *port,
                     char **address);
+void change_hostname_to_dns_query_name(char *query_name, char **address);
 
 int main(int argc, char *argv[])
 {
@@ -74,22 +75,45 @@ int main(int argc, char *argv[])
     int port = 0;
     char *address;
 
-    get_arguments(argc, argv, &help_flag, &recursion_flag, &reverse_query_flag, &AAAA_flag, &server_flag, &server, &port_flag, &port, &address);
-    show_arguments(&help_flag, &recursion_flag, &reverse_query_flag, &AAAA_flag, &server_flag, &server, &port_flag, &port, &address);
+    get_arguments(argc,
+                  argv,
+                  &help_flag,
+                  &recursion_flag,
+                  &reverse_query_flag,
+                  &AAAA_flag,
+                  &server_flag,
+                  &server,
+                  &port_flag,
+                  &port,
+                  &address);
+
+    show_arguments(&help_flag,
+                   &recursion_flag,
+                   &reverse_query_flag,
+                   &AAAA_flag,
+                   &server_flag,
+                   &server,
+                   &port_flag,
+                   &port,
+                   &address);
+
     if (help_flag)
         help();
     if (!port_flag)
         port = 53;
 
     struct sockaddr_in server_address;
-    struct hostent *servent;
+    struct hostent *server_entity;
 
     memset(&server_address, 0, sizeof(server_address));
-    if ((servent = gethostbyname(server)) == NULL)
+
+    if ((server_entity = gethostbyname(server)) == nullptr)
         error_exit(EXIT_FAILURE, "gethostbyname() failed\n");
+
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(port);
-    memcpy(&server_address.sin_addr, servent->h_addr, servent->h_length);
+
+    memcpy(&server_address.sin_addr, server_entity->h_addr, server_entity->h_length);
 
     char str[INET_ADDRSTRLEN];
 
@@ -103,7 +127,7 @@ int main(int argc, char *argv[])
     char query[255];
     int query_len;
 
-    struct DNS_HEADER dns;
+    struct DNS_HEADER dns_header;
 
     char query_name[255];
     int index_after_query_name;
@@ -120,42 +144,29 @@ int main(int argc, char *argv[])
 
     query_class = htons(1); // internet
 
-    dns.id = (unsigned short)htons(getpid());
-    dns.qr = 0;     // This is a query
-    dns.opcode = 0; // This is a standard query
-    dns.aa = 0;     // Not Authoritative
-    dns.tc = 0;     // This message is not truncated
+    dns_header.id = (unsigned short)htons(getpid());
+    dns_header.qr = 0;
+    dns_header.opcode = 0;
+    dns_header.aa = 0;
+    dns_header.tc = 0;
     if (recursion_flag)
-        dns.rd = 1; // Recursion Desired
+        dns_header.rd = 1;
     else
-        dns.rd = 0;
-    dns.ra = 0;
-    dns.z = 0;
-    dns.ad = 0;
-    dns.cd = 0;
-    dns.rcode = 0;
-    dns.q_count = htons(1); // 1 question
-    dns.ans_count = 0;
-    dns.auth_count = 0;
-    dns.add_count = 0;
+        dns_header.rd = 0;
+    dns_header.ra = 0;
+    dns_header.z = 0;
+    dns_header.ad = 0;
+    dns_header.cd = 0;
+    dns_header.rcode = 0;
+    dns_header.q_count = htons(1);
+    dns_header.ans_count = 0;
+    dns_header.auth_count = 0;
+    dns_header.add_count = 0;
 
     memset(query_name, '\0', 255);
 
-    // -- Classic version --
-    // www.fit.vutbr.cz -> 3www3fit5vutbr2cz0
-    strcpy(&query_name[1], address);
+    change_hostname_to_dns_query_name(query_name, &address);
 
-    int prevIndex = 0;
-    int len;
-    while ((len = strcspn(&query_name[prevIndex + 1], ".")) != 0)
-    {
-        cout << len << "\n";
-        query_name[prevIndex] = len;
-        prevIndex += len + 1;
-    }
-    if (strlen(address) + 1 != prevIndex) // Dot and end of name
-        query_name[prevIndex] = 0;        // Change it to null byte
-    
     cout << query_name << "\n";
 
     index_after_query_name = 12 + strlen(query_name) + 1;
@@ -163,47 +174,42 @@ int main(int argc, char *argv[])
     query_len = index_after_query_name + 4;
     memset(query, '\0', query_len);
 
-    memcpy(query, &dns, 12);
+    memcpy(query, &dns_header, 12);
     memcpy(&query[12], &query_name, strlen(query_name) + 1);
     memcpy(&query[index_after_query_name], &query_type, 2);
     memcpy(&query[index_after_query_name + 2], &query_class, 2);
 
-    int n;
-    n = sendto(socket_fd, query, query_len, 0, (struct sockaddr *)&server_address, sizeof(server_address));
-    if (n < 0)
+    int returned_value;
+    returned_value = sendto(socket_fd, query, query_len, 0, (struct sockaddr *)&server_address, sizeof(server_address));
+    if (returned_value < 0)
         error_exit(EXIT_FAILURE, "Cannot send query");
 
-    struct timeval tv;
-    tv.tv_sec = 4;
-    tv.tv_usec = 0;
-    n = setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof tv);
-    if (n < 0)
+    struct timeval timeout;
+    timeout.tv_sec = 5;
+    timeout.tv_usec = 0;
+    returned_value = setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof timeout);
+    if (returned_value < 0)
         error_exit(EXIT_FAILURE, "Timeout");
 
     unsigned char response[65536];
-    socklen_t responseLen;
-    n = recvfrom(socket_fd, response, sizeof(response), 0, (struct sockaddr *)&server_address, &responseLen);
-    if (n < 0)
-    {
-        if (errno == 11)
-            error_exit(EXIT_FAILURE, "Timeout");
-        else
-            error_exit(EXIT_FAILURE, "Receive error");
-    }
-    
-	unsigned short answerCount;
-	memcpy(&answerCount, &response[6], 2);
-	answerCount = ntohs(answerCount);
+    socklen_t response_length;
+    returned_value = recvfrom(socket_fd, response, sizeof(response), 0, (struct sockaddr *)&server_address, &response_length);
+    if (returned_value < 0)
+        error_exit(EXIT_FAILURE, "Receive error");
+
+    unsigned short answerCount;
+    memcpy(&answerCount, &response[6], 2);
+    answerCount = ntohs(answerCount);
     cout << answerCount << "\n";
-	
-	unsigned short authorityCount;
-	memcpy(&authorityCount, &response[8], 2);
-	authorityCount = ntohs(authorityCount);
+
+    unsigned short authorityCount;
+    memcpy(&authorityCount, &response[8], 2);
+    authorityCount = ntohs(authorityCount);
     cout << authorityCount << "\n";
-	
-	unsigned short additionalCount;
-	memcpy(&additionalCount, &response[10], 2);
-	additionalCount = ntohs(additionalCount);
+
+    unsigned short additionalCount;
+    memcpy(&additionalCount, &response[10], 2);
+    additionalCount = ntohs(additionalCount);
     cout << additionalCount << "\n";
 
 
@@ -234,36 +240,36 @@ void get_arguments(int argc, char **argv, int *help_flag, int *recursion_flag, i
     {
         switch (c)
         {
-        case 'h':
-            *help_flag = 1;
-            break;
-        case 's':
-            *server_flag = 1;
-            *server = optarg;
-            break;
-        case 'r':
-            *recursion_flag = 1;
-            break;
-        case 'x':
-            *reverse_query_flag = 1;
-            break;
-        case '6':
-            *AAAA_flag = 1;
-            break;
-        case 'p':
-            *port_flag = 1;
-            try
-            {
-                *port = stoi(optarg);
-            }
-            catch (...)
-            {
-                error_exit(EXIT_FAILURE, "Cannot parse port number");
-            }
-            break;
-        default:
-            error_exit(EXIT_FAILURE, "Wrong arguments");
-            break;
+            case 'h':
+                *help_flag = 1;
+                break;
+            case 's':
+                *server_flag = 1;
+                *server = optarg;
+                break;
+            case 'r':
+                *recursion_flag = 1;
+                break;
+            case 'x':
+                *reverse_query_flag = 1;
+                break;
+            case '6':
+                *AAAA_flag = 1;
+                break;
+            case 'p':
+                *port_flag = 1;
+                try
+                {
+                    *port = stoi(optarg);
+                }
+                catch (...)
+                {
+                    error_exit(EXIT_FAILURE, "Cannot parse port number");
+                }
+                break;
+            default:
+                error_exit(EXIT_FAILURE, "Wrong arguments");
+                break;
         }
     }
 }
@@ -299,4 +305,22 @@ void show_arguments(const int *help_flag,
     cout << "port_flag              " << *port_flag << "\n";
     cout << "port                   " << *port << "\n";
     cout << "address                " << *address << "\n";
+}
+
+void change_hostname_to_dns_query_name(char *query_name, char **address)
+{
+    // www.fit.vutbr.cz -> 3www3fit5vutbr2cz0
+    int previous_index = 0;
+    int length;
+
+    strcpy(&query_name[1], *address);
+
+    while ((length = strcspn(&query_name[previous_index + 1], ".")) != 0)
+    {
+        cout << length << "\n";
+        query_name[previous_index] = length;
+        previous_index = previous_index + length + 1;
+    }
+    if (strlen(*address) != previous_index - 1)
+        query_name[previous_index] = 0;
 }
