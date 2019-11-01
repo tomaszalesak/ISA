@@ -17,24 +17,24 @@ using namespace std;
 // DNS header structure
 struct DNS_HEADER
 {
-    unsigned short id;          // identification number
+    unsigned short id; // identification number
 
-    unsigned char rd : 1;       // recursion desired
-    unsigned char tc : 1;       // truncated message
-    unsigned char aa : 1;       // authoritive answer
-    unsigned char opcode : 4;   // purpose of message
-    unsigned char qr : 1;       // query/response flag
+    unsigned char rd : 1;     // recursion desired
+    unsigned char tc : 1;     // truncated message
+    unsigned char aa : 1;     // authoritive answer
+    unsigned char opcode : 4; // purpose of message
+    unsigned char qr : 1;     // query/response flag
 
-    unsigned char rcode : 4;    // response code
-    unsigned char cd : 1;       // checking disabled
-    unsigned char ad : 1;       // authenticated data
-    unsigned char z : 1;        // its z! reserved
-    unsigned char ra : 1;       // recursion available
+    unsigned char rcode : 4; // response code
+    unsigned char cd : 1;    // checking disabled
+    unsigned char ad : 1;    // authenticated data
+    unsigned char z : 1;     // its z! reserved
+    unsigned char ra : 1;    // recursion available
 
-    unsigned short q_count;     // number of question entries
-    unsigned short ans_count;   // number of answer entries
-    unsigned short auth_count;  // number of authority entries
-    unsigned short add_count;   // number of resource entries
+    unsigned short q_count;    // number of question entries
+    unsigned short ans_count;  // number of answer entries
+    unsigned short auth_count; // number of authority entries
+    unsigned short add_count;  // number of resource entries
 };
 
 // function prototypes
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
 
     if (AAAA_flag)
         query_type = htons(28);
-    else if(reverse_query_flag)
+    else if (reverse_query_flag)
         query_type = htons(12);
     else
         query_type = htons(1);
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
     dns_header.aa = 0;
     dns_header.tc = 0;
     if (recursion_flag)
-        dns_header.rd = 1;
+        dns_header.rd = htons(1);
     else
         dns_header.rd = 0;
     dns_header.ra = 0;
@@ -165,40 +165,59 @@ int main(int argc, char *argv[])
 
     memset(query_name, '\0', 255);
 
-    if(reverse_query_flag)
+    if (reverse_query_flag)
     {
         // IPv4
-        if(strchr(address, '.') != nullptr)
+        if (strchr(address, '.') != nullptr)
         {
             char buf[255];
             int ret_func_val;
             ret_func_val = inet_pton(AF_INET, address, &buf);
-            if(ret_func_val < 1)
-                error_exit(EXIT_FAILURE, "Wrong IPv6 address");
+            if (ret_func_val < 1)
+                error_exit(EXIT_FAILURE, "Wrong IPv4 address");
             char in_addr_arpa_string[14] = ".in-addr.arpa";
             in_addr_arpa_string[0] = 7;
             in_addr_arpa_string[8] = 4;
 
+            int name_lentgh = strlen(address);
+            char reversed_name[name_lentgh];
+            for(int i = 0; i < name_lentgh; i++)
+            {
+                reversed_name[i] = address[name_lentgh-i-1];
+            }
 
+            int label_length = 0;
+            int previous_index = 0;
+            while((label_length = strcspn(&reversed_name[previous_index], ".")) != 0)
+            {
+                char reversed_label[label_length+1];
+                memset(reversed_label, '\0', label_length);
+                for(int i = 0; i < label_length; i++)
+				{
+					reversed_label[label_length-i-1] = reversed_name[previous_index+i];
+				}
+				
+				qName[prevIndex] = len;
+				memcpy(&qName[prevIndex+1], reversedLabel, len);
+				
+				prevIndex += len+1;
+            }
 
         }
         // IPv6
-        else if(strchr(address, ':') != nullptr)
+        else if (strchr(address, ':') != nullptr)
         {
-            
         }
         else
         {
             error_exit(EXIT_FAILURE, "Expected IPv4 or IPv6");
         }
-        
-        
     }
     else
     {
         change_hostname_to_dns_query_name(query_name, &address);
     }
-    
+
     cout << query_name << "\n";
 
     index_after_query_name = 12 + strlen(query_name) + 1;
@@ -244,9 +263,6 @@ int main(int argc, char *argv[])
     additionalCount = ntohs(additionalCount);
     cout << additionalCount << "\n";
 
-
-
-
     exit(EXIT_SUCCESS);
 }
 
@@ -282,36 +298,36 @@ void get_arguments(int argc,
     {
         switch (c)
         {
-            case 'h':
-                *help_flag = 1;
-                break;
-            case 's':
-                *server_flag = 1;
-                *server = optarg;
-                break;
-            case 'r':
-                *recursion_flag = 1;
-                break;
-            case 'x':
-                *reverse_query_flag = 1;
-                break;
-            case '6':
-                *AAAA_flag = 1;
-                break;
-            case 'p':
-                *port_flag = 1;
-                try
-                {
-                    *port = stoi(optarg);
-                }
-                catch (...)
-                {
-                    error_exit(EXIT_FAILURE, "Cannot parse port number");
-                }
-                break;
-            default:
-                error_exit(EXIT_FAILURE, "Wrong arguments");
-                break;
+        case 'h':
+            *help_flag = 1;
+            break;
+        case 's':
+            *server_flag = 1;
+            *server = optarg;
+            break;
+        case 'r':
+            *recursion_flag = 1;
+            break;
+        case 'x':
+            *reverse_query_flag = 1;
+            break;
+        case '6':
+            *AAAA_flag = 1;
+            break;
+        case 'p':
+            *port_flag = 1;
+            try
+            {
+                *port = stoi(optarg);
+            }
+            catch (...)
+            {
+                error_exit(EXIT_FAILURE, "Cannot parse port number");
+            }
+            break;
+        default:
+            error_exit(EXIT_FAILURE, "Wrong arguments");
+            break;
         }
     }
 }
