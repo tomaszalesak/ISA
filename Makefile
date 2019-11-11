@@ -11,7 +11,7 @@ dns: $(SOURCES)
 	$(CC) $(CFLAGS) $(SOURCES) -o $(PROGRAM)
 
 run: all
-	./dns -r -6 -s kazi.fit.vutbr.cz www.fit.vut.cz
+	./dns -r -s 8.8.8.8 www.seznam.cz
 
 test: all
 	echo "TBD"
@@ -23,7 +23,7 @@ tar:
 	tar -cf $(LOGIN).tar $(FILES)
 
 push: clean
-	rsync -avuz -e ssh /mnt/e/Škola/ISA/project/ merlin:~/isa
+	rsync -avuzz -e ssh -v /mnt/e/Škola/ISA/project/ eva:~/isa
 
 mem: all
 	valgrind ./dns -r -x -6 -s kazi.fit.vutbr.cz -p 1234 www.fit.vut.cz
