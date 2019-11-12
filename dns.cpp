@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
     if (!port_flag)
         port = 53;
 
-    struct sockaddr_in server_address;
+    struct sockaddr_in server_address{};
     struct hostent *server_entity;
 
     memset(&server_address, 0, sizeof(server_address));
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
     char query[255];
     int query_len;
 
-    struct DNS_HEADER dns_header;
+    struct DNS_HEADER dns_header{};
 
     char query_name[255];
     int index_after_query_name;
@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
             char *p = &reversed_ip[0];
             change_hostname_to_dns_query_name(query_name, &p);
         }
-        // IPv6
+            // IPv6
         else if (strchr(address, ':') != nullptr)
         {
             unsigned char addr[16];
@@ -220,8 +220,8 @@ int main(int argc, char *argv[])
             if (ret_func_val < 1)
                 error_exit(EXIT_FAILURE, "Wrong IPv6 address");
 
-            char str[40];
-            sprintf(str, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
+            char stripv6string[40];
+            sprintf(stripv6string, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
                     (int)addr[0], (int)addr[1],
                     (int)addr[2], (int)addr[3],
                     (int)addr[4], (int)addr[5],
@@ -232,12 +232,12 @@ int main(int argc, char *argv[])
                     (int)addr[14], (int)addr[15]);
 
             char reversed_ip_6[255];
-            reverse_string(str);
+            reverse_string(stripv6string);
             sprintf(reversed_ip_6, "%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.IP6.ARPA",
-                    str[0], str[1], str[2], str[3], str[5], str[6], str[7], str[8],
-                    str[10], str[11], str[12], str[13], str[15], str[16], str[17], str[18],
-                    str[20], str[21], str[22], str[23], str[25], str[26], str[27], str[28],
-                    str[30], str[31], str[32], str[33], str[35], str[36], str[37], str[38]);
+                    stripv6string[0], stripv6string[1], stripv6string[2], stripv6string[3], stripv6string[5], stripv6string[6], stripv6string[7], stripv6string[8],
+                    stripv6string[10], stripv6string[11], stripv6string[12], stripv6string[13], stripv6string[15], stripv6string[16], stripv6string[17], stripv6string[18],
+                    stripv6string[20], stripv6string[21], stripv6string[22], stripv6string[23], stripv6string[25], stripv6string[26], stripv6string[27], stripv6string[28],
+                    stripv6string[30], stripv6string[31], stripv6string[32], stripv6string[33], stripv6string[35], stripv6string[36], stripv6string[37], stripv6string[38]);
 
             char *p = &reversed_ip_6[0];
             change_hostname_to_dns_query_name(query_name, &p);
@@ -267,7 +267,7 @@ int main(int argc, char *argv[])
     if (returned_value < 0)
         error_exit(EXIT_FAILURE, "Cannot send query");
 
-    struct timeval timeout;
+    struct timeval timeout{};
     timeout.tv_sec = 3;
     timeout.tv_usec = 0;
     returned_value = setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof timeout);
@@ -280,7 +280,7 @@ int main(int argc, char *argv[])
     if (returned_value < 0)
         error_exit(EXIT_FAILURE, "Receive error");
 
-    struct DNS_HEADER *dns_response = NULL;
+    struct DNS_HEADER *dns_response = nullptr;
     dns_response = (struct DNS_HEADER *)response;
     if (ntohs(dns_response->rcode) == 1)
     {
@@ -318,7 +318,7 @@ int main(int argc, char *argv[])
 
     unsigned char *reader;
     int stop = 0;
-    struct RES_RECORD answer;
+    struct RES_RECORD answer{};
 
     printf("Question section (%d)\n", ntohs(dns_response->q_count));
     reader = &response[sizeof(struct DNS_HEADER)];
@@ -357,7 +357,7 @@ int main(int argc, char *argv[])
                 exit(EXIT_FAILURE);
             }
 
-            if (inet_ntop(AF_INET6, buf, str, INET6_ADDRSTRLEN) == NULL)
+            if (inet_ntop(AF_INET6, buf, str, INET6_ADDRSTRLEN) == nullptr)
             {
                 perror("inet_ntop");
                 exit(EXIT_FAILURE);
@@ -432,20 +432,20 @@ int main(int argc, char *argv[])
 
         if (strcmp(c1, "A") == 0)
         {
-            struct in_addr ipv4;
-            char str[INET_ADDRSTRLEN];
+            struct in_addr ipv4{};
+            char type_A_string[INET_ADDRSTRLEN];
             memcpy(&ipv4, reader, 4);
-            inet_ntop(AF_INET, &ipv4, str, INET_ADDRSTRLEN);
-            printf("%s", str);
+            inet_ntop(AF_INET, &ipv4, type_A_string, INET_ADDRSTRLEN);
+            printf("%s", type_A_string);
             reader = reader + 4;
         }
         else if (strcmp(c1, "AAAA") == 0)
         {
-            struct in6_addr ipv6;
-            char str[INET6_ADDRSTRLEN];
+            struct in6_addr ipv6{};
+            char type_AAAA_string[INET6_ADDRSTRLEN];
             memcpy(&ipv6, reader, 16);
-            inet_ntop(AF_INET6, &ipv6, str, INET6_ADDRSTRLEN);
-            printf("%s", str);
+            inet_ntop(AF_INET6, &ipv6, type_AAAA_string, INET6_ADDRSTRLEN);
+            printf("%s", type_AAAA_string);
             reader = reader + 16;
         }
         else
@@ -506,20 +506,20 @@ int main(int argc, char *argv[])
 
         if (strcmp(c1, "A") == 0)
         {
-            struct in_addr ipv4;
-            char str[INET_ADDRSTRLEN];
+            struct in_addr ipv4{};
+            char type_A[INET_ADDRSTRLEN];
             memcpy(&ipv4, reader, 4);
-            inet_ntop(AF_INET, &ipv4, str, INET_ADDRSTRLEN);
-            printf("%s", str);
+            inet_ntop(AF_INET, &ipv4, type_A, INET_ADDRSTRLEN);
+            printf("%s", type_A);
             reader = reader + 4;
         }
         else if (strcmp(c1, "AAAA") == 0)
         {
-            struct in6_addr ipv6;
-            char str[INET6_ADDRSTRLEN];
+            struct in6_addr ipv6{};
+            char type_AAAA[INET6_ADDRSTRLEN];
             memcpy(&ipv6, reader, 16);
-            inet_ntop(AF_INET6, &ipv6, str, INET6_ADDRSTRLEN);
-            printf("%s", str);
+            inet_ntop(AF_INET6, &ipv6, type_AAAA, INET6_ADDRSTRLEN);
+            printf("%s", type_AAAA);
             reader = reader + 16;
         }
         else
@@ -579,20 +579,20 @@ int main(int argc, char *argv[])
 
         if (strcmp(c1, "A") == 0)
         {
-            struct in_addr ipv4;
-            char str[INET_ADDRSTRLEN];
+            struct in_addr ipv4{};
+            char type_a_str[INET_ADDRSTRLEN];
             memcpy(&ipv4, reader, 4);
-            inet_ntop(AF_INET, &ipv4, str, INET_ADDRSTRLEN);
-            printf("%s", str);
+            inet_ntop(AF_INET, &ipv4, type_a_str, INET_ADDRSTRLEN);
+            printf("%s", type_a_str);
             reader = reader + 4;
         }
         else if (strcmp(c1, "AAAA") == 0)
         {
-            struct in6_addr ipv6;
-            char str[INET6_ADDRSTRLEN];
+            struct in6_addr ipv6{};
+            char type_aaaa_str[INET6_ADDRSTRLEN];
             memcpy(&ipv6, reader, 16);
-            inet_ntop(AF_INET6, &ipv6, str, INET6_ADDRSTRLEN);
-            printf("%s", str);
+            inet_ntop(AF_INET6, &ipv6, type_aaaa_str, INET6_ADDRSTRLEN);
+            printf("%s", type_aaaa_str);
             reader = reader + 16;
         }
         else
@@ -638,36 +638,36 @@ void get_arguments(int argc,
     {
         switch (c)
         {
-        case 'h':
-            *help_flag = 1;
-            break;
-        case 's':
-            *server_flag = 1;
-            *server = optarg;
-            break;
-        case 'r':
-            *recursion_flag = 1;
-            break;
-        case 'x':
-            *reverse_query_flag = 1;
-            break;
-        case '6':
-            *AAAA_flag = 1;
-            break;
-        case 'p':
-            *port_flag = 1;
-            try
-            {
-                *port = stoi(optarg);
-            }
-            catch (...)
-            {
-                error_exit(EXIT_FAILURE, "Cannot parse port number");
-            }
-            break;
-        default:
-            error_exit(EXIT_FAILURE, "Wrong arguments");
-            break;
+            case 'h':
+                *help_flag = 1;
+                break;
+            case 's':
+                *server_flag = 1;
+                *server = optarg;
+                break;
+            case 'r':
+                *recursion_flag = 1;
+                break;
+            case 'x':
+                *reverse_query_flag = 1;
+                break;
+            case '6':
+                *AAAA_flag = 1;
+                break;
+            case 'p':
+                *port_flag = 1;
+                try
+                {
+                    *port = stoi(optarg);
+                }
+                catch (...)
+                {
+                    error_exit(EXIT_FAILURE, "Cannot parse port number");
+                }
+                break;
+            default:
+                error_exit(EXIT_FAILURE, "Wrong arguments");
+                break;
         }
     }
 }
@@ -730,12 +730,12 @@ void reverse_IP(char *pIP)
     char pIPSec[4][4];
     int i = 0;
     token = strtok(pIP, seps);
-    while (token != NULL)
+    while (token != nullptr)
     {
         /* While there are "." characters in "string" */
         sprintf(pIPSec[i], "%s", token);
         /* Get next "." character: */
-        token = strtok(NULL, seps);
+        token = strtok(nullptr, seps);
         i++;
     }
     sprintf(pIP, "%s.%s.%s.%s.%s", pIPSec[3], pIPSec[2], pIPSec[1], pIPSec[0], "IN-ADDR.ARPA");
@@ -743,7 +743,7 @@ void reverse_IP(char *pIP)
 
 void unreverse_IP(char *pIP)
 {
-    if (strstr(pIP, ".IN-ADDR.ARPA.") != NULL)
+    if (strstr(pIP, ".IN-ADDR.ARPA.") != nullptr)
     {
         pIP[strlen(pIP) - 14] = '\0';
     }
@@ -753,12 +753,12 @@ void unreverse_IP(char *pIP)
     char pIPSec[4][4];
     int i = 0;
     token = strtok(pIP, seps);
-    while (token != NULL)
+    while (token != nullptr)
     {
         /* While there are "." characters in "string" */
         sprintf(pIPSec[i], "%s", token);
         /* Get next "." character: */
-        token = strtok(NULL, seps);
+        token = strtok(nullptr, seps);
         i++;
     }
     sprintf(pIP, "%s.%s.%s.%s", pIPSec[3], pIPSec[2], pIPSec[1], pIPSec[0]);
@@ -915,42 +915,42 @@ const char *type2char(int type)
     type = ntohs(type);
     switch (type)
     {
-    case 1:
-        return "A";
-    case 2:
-        return "NS";
-    case 3:
-        return "MD";
-    case 4:
-        return "MF";
-    case 5:
-        return "CNAME";
-    case 6:
-        return "SOA";
-    case 7:
-        return "MB";
-    case 8:
-        return "MG";
-    case 9:
-        return "MR";
-    case 10:
-        return "NULL";
-    case 11:
-        return "WKS";
-    case 12:
-        return "PTR";
-    case 13:
-        return "HINFO";
-    case 14:
-        return "MINFO";
-    case 15:
-        return "MX";
-    case 16:
-        return "TXT";
-    case 28:
-        return "AAAA";
-    default:
-        return NULL;
+        case 1:
+            return "A";
+        case 2:
+            return "NS";
+        case 3:
+            return "MD";
+        case 4:
+            return "MF";
+        case 5:
+            return "CNAME";
+        case 6:
+            return "SOA";
+        case 7:
+            return "MB";
+        case 8:
+            return "MG";
+        case 9:
+            return "MR";
+        case 10:
+            return "NULL";
+        case 11:
+            return "WKS";
+        case 12:
+            return "PTR";
+        case 13:
+            return "HINFO";
+        case 14:
+            return "MINFO";
+        case 15:
+            return "MX";
+        case 16:
+            return "TXT";
+        case 28:
+            return "AAAA";
+        default:
+            return NULL;
     }
 }
 
