@@ -94,7 +94,10 @@ void change_hostname_to_dns_query_name(char *query_name, char **address);
 void reverse_IP(char *pIP);
 void reverse_string(char *str);
 int get_name_from_response(char *name, unsigned char *response, unsigned char *dns_name, int query_len, int type);
-u_char *ReadName(unsigned char *reader, unsigned char *buffer, int *count);
+u_char *read_raw_name(unsigned char *reader, unsigned char *buffer, int *count);
+const char *type2char(int type);
+unsigned char *change_query_name_to_hostname(unsigned char *name);
+void unreverse_IP(char *pIP);
 
 int main(int argc, char *argv[])
 {
@@ -120,16 +123,6 @@ int main(int argc, char *argv[])
                   &port_flag,
                   &port,
                   &address);
-
-    // show_arguments(&help_flag,
-    //                &recursion_flag,
-    //                &reverse_query_flag,
-    //                &AAAA_flag,
-    //                &server_flag,
-    //                &server,
-    //                &port_flag,
-    //                &port,
-    //                &address);
 
     if (help_flag)
         help();
@@ -200,14 +193,12 @@ int main(int argc, char *argv[])
     dns_header.add_count = 0;
 
     memset(query_name, '\0', 255);
-    int type = 0;
 
     if (reverse_query_flag)
     {
         // IPv4
         if (strchr(address, '.') != nullptr)
         {
-            type = 4;
             char buf[255];
             int ret_func_val;
             ret_func_val = inet_pton(AF_INET, address, &buf);
@@ -223,7 +214,6 @@ int main(int argc, char *argv[])
         // IPv6
         else if (strchr(address, ':') != nullptr)
         {
-            type = 6;
             unsigned char addr[16];
             int ret_func_val;
             ret_func_val = inet_pton(AF_INET6, address, &addr);
@@ -278,7 +268,7 @@ int main(int argc, char *argv[])
         error_exit(EXIT_FAILURE, "Cannot send query");
 
     struct timeval timeout;
-    timeout.tv_sec = 5;
+    timeout.tv_sec = 3;
     timeout.tv_usec = 0;
     returned_value = setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof timeout);
     if (returned_value < 0)
@@ -326,48 +316,293 @@ int main(int argc, char *argv[])
     else
         printf("Truncated: No\n");
 
-    unsigned char *reader = &response[sizeof(struct DNS_HEADER) + (strlen((const char *)query_name) + 1) + sizeof(struct QUESTION)];
+    unsigned char *reader;
     int stop = 0;
-
-    printf("Question section (%d)\n", ntohs(dns_response->q_count));
-
     struct RES_RECORD answer;
 
+    printf("Question section (%d)\n", ntohs(dns_response->q_count));
+    reader = &response[sizeof(struct DNS_HEADER)];
+    answer.name = read_raw_name(reader, response, &stop);
+
+    reader = reader + stop;
+    unsigned short s;
+    memcpy(&s, reader, 2);
+    const char *c = type2char(s);
+
+    if (strcmp(c, "PTR") != 0)
+        printf("  %s, ", change_query_name_to_hostname(answer.name));
+    string namestr = reinterpret_cast<const char *>(change_query_name_to_hostname(answer.name));
+
+    if (strcmp(c, "PTR") == 0)
+    {
+        if (namestr.find(".IP6.ARPA.") != string::npos)
+        {
+            char unreversed_ip_6[255];
+            unsigned char buf[sizeof(struct in6_addr)];
+            char *sname = const_cast<char *>(namestr.c_str());
+            reverse_string(sname);
+            sprintf(unreversed_ip_6, "%c%c%c%c:%c%c%c%c:%c%c%c%c:%c%c%c%c:%c%c%c%c:%c%c%c%c:%c%c%c%c:%c%c%c%c",
+                    sname[10], sname[12], sname[14], sname[16], sname[18], sname[20], sname[22], sname[24],
+                    sname[26], sname[28], sname[30], sname[32], sname[34], sname[36], sname[38], sname[40],
+                    sname[42], sname[44], sname[46], sname[48], sname[50], sname[52], sname[54], sname[56],
+                    sname[58], sname[60], sname[62], sname[64], sname[66], sname[68], sname[70], sname[72]);
+
+            int s21 = inet_pton(AF_INET6, unreversed_ip_6, buf);
+            if (s21 <= 0)
+            {
+                if (s21 == 0)
+                    fprintf(stderr, "Not in presentation format");
+                else
+                    perror("inet_pton");
+                exit(EXIT_FAILURE);
+            }
+
+            if (inet_ntop(AF_INET6, buf, str, INET6_ADDRSTRLEN) == NULL)
+            {
+                perror("inet_ntop");
+                exit(EXIT_FAILURE);
+            }
+
+            printf("  %s, ", str);
+        }
+        else if (namestr.find(".IN-ADDR.ARPA.") != string::npos)
+        {
+            char *cs = const_cast<char *>(namestr.c_str());
+            unreverse_IP(cs);
+            printf("  %s, ", cs);
+        }
+        else
+        {
+            error_exit(EXIT_FAILURE, "Cannot parse query name in PTR response");
+        }
+    }
+
+    printf("%s, ", c);
+    reader += 2;
+    printf("IN\n");
+    reader += 2;
+
+    stop = 0;
     printf("Answer section (%d)\n", ntohs(dns_response->ans_count));
     for (int i = 0; i < ntohs(dns_response->ans_count); i++)
     {
-        answer.name = ReadName(reader, response, &stop);
+        stop = 0;
+        answer.name = read_raw_name(reader, response, &stop);
+        if (strcmp(c, "A") == 0)
+        {
+            printf("  %s, ", change_query_name_to_hostname(answer.name));
+        }
+        else if (strcmp(c, "AAAA") == 0)
+        {
+            printf("  %s, ", change_query_name_to_hostname(answer.name));
+        }
+        else if (strcmp(c, "CNAME") == 0)
+        {
+            printf("  %s, ", change_query_name_to_hostname(answer.name));
+        }
+        else if (strcmp(c, "PTR") == 0)
+        {
+            printf("  %s, ", change_query_name_to_hostname(answer.name));
+        }
+        else
+        {
+            printf("  %s, ", answer.name);
+        }
         reader = reader + stop;
-        printf("  %s., ", answer.name);
 
-        unsigned short x;
-        unsigned char y;
-        memcpy(&x, reader, 2);
-        printf("%d, ", ntohs(x));
+        unsigned short s1;
+        memcpy(&s1, reader, 2);
+        const char *c1 = type2char(s1);
+        printf("%s, ", c1);
         reader += 2;
 
-        memcpy(&x, reader, 2);
-        printf("%d, ", ntohs(x));
+        printf("IN, ");
         reader += 2;
 
-        memcpy(&y, reader, 4);
-        printf("%d, ", ntohs(y));
-        reader += 4;
+        u_int32_t s2;
+        memcpy(&s2, reader, 4);
+        printf("%d, ", ntohl(s2));
+        reader = reader + 4;
 
-        memcpy(&x, reader, 2);
-        printf("%d, ", ntohs(x));
-        reader += 2;
+        u_int16_t s3;
+        memcpy(&s3, reader, 2);
+        s3 = ntohs(s3);
+        printf("%d, ", s3);
+        reader = reader + 2;
 
-        char ipAddress[INET_ADDRSTRLEN];
-        memcpy(&y, reader, 4);
-        inet_ntop(AF_INET, &y, ipAddress, INET_ADDRSTRLEN);
-        printf("%d\n", ipAddress);
-        reader += 4;
+        if (strcmp(c1, "A") == 0)
+        {
+            struct in_addr ipv4;
+            char str[INET_ADDRSTRLEN];
+            memcpy(&ipv4, reader, 4);
+            inet_ntop(AF_INET, &ipv4, str, INET_ADDRSTRLEN);
+            printf("%s", str);
+            reader = reader + 4;
+        }
+        else if (strcmp(c1, "AAAA") == 0)
+        {
+            struct in6_addr ipv6;
+            char str[INET6_ADDRSTRLEN];
+            memcpy(&ipv6, reader, 16);
+            inet_ntop(AF_INET6, &ipv6, str, INET6_ADDRSTRLEN);
+            printf("%s", str);
+            reader = reader + 16;
+        }
+        else
+        {
+            answer.name = read_raw_name(reader, response, &stop);
+            printf("%s, ", change_query_name_to_hostname(answer.name));
+            reader = reader + stop;
+        }
+        printf("\n");
     }
 
     printf("Authority section (%d)\n", ntohs(dns_response->auth_count));
-    printf("Additional section (%d)\n", ntohs(dns_response->add_count));
+    for (int i = 0; i < ntohs(dns_response->auth_count); i++)
+    {
+        stop = 0;
+        answer.name = read_raw_name(reader, response, &stop);
+        if (strcmp(c, "A") == 0)
+        {
+            printf("  %s, ", change_query_name_to_hostname(answer.name));
+        }
+        else if (strcmp(c, "AAAA") == 0)
+        {
+            printf("  %s, ", change_query_name_to_hostname(answer.name));
+        }
+        else if (strcmp(c, "CNAME") == 0)
+        {
+            printf("  %s, ", change_query_name_to_hostname(answer.name));
+        }
+        else if (strcmp(c, "PTR") == 0)
+        {
+            printf("  %s, ", change_query_name_to_hostname(answer.name));
+        }
+        else
+        {
+            printf("  %s, ", answer.name);
+        }
+        reader = reader + stop;
 
+        unsigned short s1;
+        memcpy(&s1, reader, 2);
+        const char *c1 = type2char(s1);
+        printf("%s, ", c1);
+        reader += 2;
+
+        printf("IN, ");
+        reader += 2;
+
+        u_int32_t s2;
+        memcpy(&s2, reader, 4);
+        printf("%d, ", ntohl(s2));
+        reader = reader + 4;
+
+        u_int16_t s3;
+        memcpy(&s3, reader, 2);
+        s3 = ntohs(s3);
+        printf("%d, ", s3);
+        reader = reader + 2;
+
+        if (strcmp(c1, "A") == 0)
+        {
+            struct in_addr ipv4;
+            char str[INET_ADDRSTRLEN];
+            memcpy(&ipv4, reader, 4);
+            inet_ntop(AF_INET, &ipv4, str, INET_ADDRSTRLEN);
+            printf("%s", str);
+            reader = reader + 4;
+        }
+        else if (strcmp(c1, "AAAA") == 0)
+        {
+            struct in6_addr ipv6;
+            char str[INET6_ADDRSTRLEN];
+            memcpy(&ipv6, reader, 16);
+            inet_ntop(AF_INET6, &ipv6, str, INET6_ADDRSTRLEN);
+            printf("%s", str);
+            reader = reader + 16;
+        }
+        else
+        {
+            answer.name = read_raw_name(reader, response, &stop);
+            printf("%s, ", change_query_name_to_hostname(answer.name));
+            reader = reader + stop;
+        }
+        printf("\n");
+    }
+    printf("Additional section (%d)\n", ntohs(dns_response->add_count));
+    for (int i = 0; i < ntohs(dns_response->add_count); i++)
+    {
+        stop = 0;
+        answer.name = read_raw_name(reader, response, &stop);
+        if (strcmp(c, "A") == 0)
+        {
+            printf("  %s, ", change_query_name_to_hostname(answer.name));
+        }
+        else if (strcmp(c, "AAAA") == 0)
+        {
+            printf("  %s, ", change_query_name_to_hostname(answer.name));
+        }
+        else if (strcmp(c, "CNAME") == 0)
+        {
+            printf("  %s, ", change_query_name_to_hostname(answer.name));
+        }
+        else if (strcmp(c, "PTR") == 0)
+        {
+            printf("  %s, ", change_query_name_to_hostname(answer.name));
+        }
+        else
+        {
+            printf("  %s, ", answer.name);
+        }
+        reader = reader + stop;
+
+        unsigned short s1;
+        memcpy(&s1, reader, 2);
+        const char *c1 = type2char(s1);
+        printf("%s, ", c1);
+        reader += 2;
+
+        printf("IN, ");
+        reader += 2;
+
+        u_int32_t s2;
+        memcpy(&s2, reader, 4);
+        printf("%d, ", ntohl(s2));
+        reader = reader + 4;
+
+        u_int16_t s3;
+        memcpy(&s3, reader, 2);
+        s3 = ntohs(s3);
+        printf("%d, ", s3);
+        reader = reader + 2;
+
+        if (strcmp(c1, "A") == 0)
+        {
+            struct in_addr ipv4;
+            char str[INET_ADDRSTRLEN];
+            memcpy(&ipv4, reader, 4);
+            inet_ntop(AF_INET, &ipv4, str, INET_ADDRSTRLEN);
+            printf("%s", str);
+            reader = reader + 4;
+        }
+        else if (strcmp(c1, "AAAA") == 0)
+        {
+            struct in6_addr ipv6;
+            char str[INET6_ADDRSTRLEN];
+            memcpy(&ipv6, reader, 16);
+            inet_ntop(AF_INET6, &ipv6, str, INET6_ADDRSTRLEN);
+            printf("%s", str);
+            reader = reader + 16;
+        }
+        else
+        {
+            answer.name = read_raw_name(reader, response, &stop);
+            printf("%s, ", change_query_name_to_hostname(answer.name));
+            reader = reader + stop;
+        }
+        printf("\n");
+    }
     exit(EXIT_SUCCESS);
 }
 
@@ -506,6 +741,29 @@ void reverse_IP(char *pIP)
     sprintf(pIP, "%s.%s.%s.%s.%s", pIPSec[3], pIPSec[2], pIPSec[1], pIPSec[0], "IN-ADDR.ARPA");
 }
 
+void unreverse_IP(char *pIP)
+{
+    if (strstr(pIP, ".IN-ADDR.ARPA.") != NULL)
+    {
+        pIP[strlen(pIP) - 14] = '\0';
+    }
+
+    char seps[] = ".";
+    char *token;
+    char pIPSec[4][4];
+    int i = 0;
+    token = strtok(pIP, seps);
+    while (token != NULL)
+    {
+        /* While there are "." characters in "string" */
+        sprintf(pIPSec[i], "%s", token);
+        /* Get next "." character: */
+        token = strtok(NULL, seps);
+        i++;
+    }
+    sprintf(pIP, "%s.%s.%s.%s", pIPSec[3], pIPSec[2], pIPSec[1], pIPSec[0]);
+}
+
 void reverse_string(char *str)
 {
     /* skip null */
@@ -611,18 +869,17 @@ int get_name_from_response(char *name, unsigned char *response, unsigned char *d
     }
 }
 
-u_char *ReadName(unsigned char *reader, unsigned char *buffer, int *count)
+u_char *read_raw_name(unsigned char *reader, unsigned char *buffer, int *count)
 {
     unsigned char *name;
     unsigned int p = 0, jumped = 0, offset;
-    int i, j;
 
     *count = 1;
     name = (unsigned char *)malloc(256);
 
     name[0] = '\0';
 
-    //read the names in 3www6google3com format
+    //read dns raw names
     while (*reader != 0)
     {
         if (*reader >= 192)
@@ -650,7 +907,57 @@ u_char *ReadName(unsigned char *reader, unsigned char *buffer, int *count)
         *count = *count + 1; //number of steps we actually moved forward in the packet
     }
 
-    //now convert 3www6google3com0 to www.google.com
+    return name;
+}
+
+const char *type2char(int type)
+{
+    type = ntohs(type);
+    switch (type)
+    {
+    case 1:
+        return "A";
+    case 2:
+        return "NS";
+    case 3:
+        return "MD";
+    case 4:
+        return "MF";
+    case 5:
+        return "CNAME";
+    case 6:
+        return "SOA";
+    case 7:
+        return "MB";
+    case 8:
+        return "MG";
+    case 9:
+        return "MR";
+    case 10:
+        return "NULL";
+    case 11:
+        return "WKS";
+    case 12:
+        return "PTR";
+    case 13:
+        return "HINFO";
+    case 14:
+        return "MINFO";
+    case 15:
+        return "MX";
+    case 16:
+        return "TXT";
+    case 28:
+        return "AAAA";
+    default:
+        return NULL;
+    }
+}
+
+unsigned char *change_query_name_to_hostname(unsigned char *name)
+{
+    int i, j;
+    unsigned int p;
     for (i = 0; i < (int)strlen((const char *)name); i++)
     {
         p = name[i];
@@ -661,6 +968,5 @@ u_char *ReadName(unsigned char *reader, unsigned char *buffer, int *count)
         }
         name[i] = '.';
     }
-    name[i - 1] = '\0'; //remove the last dot
     return name;
 }
