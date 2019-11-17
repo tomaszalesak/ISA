@@ -29,8 +29,7 @@
 using namespace std;
 
 // DNS header structure
-struct DNS_HEADER
-{
+struct DNS_HEADER {
     unsigned short id; // identification number
 
     unsigned char rd : 1;     // recursion desired
@@ -52,16 +51,14 @@ struct DNS_HEADER
 };
 
 //Constant sized fields of query structure
-struct QUESTION
-{
+struct QUESTION {
     unsigned short qtype;
     unsigned short qclass;
 };
 
 //Constant sized fields of the resource record structure
 #pragma pack(push, 1)
-struct R_DATA
-{
+struct R_DATA {
     unsigned short type;
     unsigned short _class;
     unsigned int ttl;
@@ -70,16 +67,14 @@ struct R_DATA
 #pragma pack(pop)
 
 //Pointers to resource record contents
-struct RES_RECORD
-{
+struct RES_RECORD {
     unsigned char *name;
     struct R_DATA *resource;
     unsigned char *rdata;
 };
 
 //Structure of a Query
-typedef struct
-{
+typedef struct {
     unsigned char *name;
     struct QUESTION *ques;
 } QUERY;
@@ -133,8 +128,7 @@ const char *type2char(int type);
 // retruns parsed query name from dns format in a query
 unsigned char *change_query_name_to_hostname(unsigned char *name);
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     // argument values
     int help_flag = 0;
     int recursion_flag = 0;
@@ -165,8 +159,8 @@ int main(int argc, char *argv[])
         port = 53;
 
     struct sockaddr_in server_address
-    {
-    };
+            {
+            };
     struct hostent *server_entity;
 
     memset(&server_address, 0, sizeof(server_address));
@@ -194,9 +188,7 @@ int main(int argc, char *argv[])
     char query[255];
     int query_len;
 
-    struct DNS_HEADER dns_header
-    {
-    };
+    struct DNS_HEADER dns_header {};
 
     char query_name[255];
     int index_after_query_name;
@@ -213,16 +205,14 @@ int main(int argc, char *argv[])
 
     query_class = htons(1); // internet
 
-    dns_header.id = (unsigned short)htons(getpid());
+    dns_header.id = (unsigned short) htons(getpid());
     dns_header.qr = 0;
     dns_header.opcode = 0;
     dns_header.aa = 0;
     dns_header.tc = 0;
-    if (recursion_flag)
-    {
+    if (recursion_flag) {
         dns_header.rd = 1;
-    }
-    else
+    } else
         dns_header.rd = 0;
     dns_header.ra = 0;
     dns_header.z = 0;
@@ -237,11 +227,9 @@ int main(int argc, char *argv[])
     // set empty string of query name
     memset(query_name, '\0', 255);
 
-    if (reverse_query_flag)
-    {
+    if (reverse_query_flag) {
         // IPv4 dns query name setup
-        if (strchr(address, '.') != nullptr)
-        {
+        if (strchr(address, '.') != nullptr) {
             char buf[255];
             int ret_func_val;
             ret_func_val = inet_pton(AF_INET, address, &buf);
@@ -254,9 +242,8 @@ int main(int argc, char *argv[])
             char *p = &reversed_ip[0];
             change_hostname_to_dns_query_name(query_name, &p);
         }
-        // IPv6 dns query name setup
-        else if (strchr(address, ':') != nullptr)
-        {
+            // IPv6 dns query name setup
+        else if (strchr(address, ':') != nullptr) {
             unsigned char addr[16];
             int ret_func_val;
             // check ipv6 address
@@ -267,34 +254,35 @@ int main(int argc, char *argv[])
             // get long version of ipv6
             char long_ipv6[40];
             sprintf(long_ipv6, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
-                    (int)addr[0], (int)addr[1],
-                    (int)addr[2], (int)addr[3],
-                    (int)addr[4], (int)addr[5],
-                    (int)addr[6], (int)addr[7],
-                    (int)addr[8], (int)addr[9],
-                    (int)addr[10], (int)addr[11],
-                    (int)addr[12], (int)addr[13],
-                    (int)addr[14], (int)addr[15]);
+                    (int) addr[0], (int) addr[1],
+                    (int) addr[2], (int) addr[3],
+                    (int) addr[4], (int) addr[5],
+                    (int) addr[6], (int) addr[7],
+                    (int) addr[8], (int) addr[9],
+                    (int) addr[10], (int) addr[11],
+                    (int) addr[12], (int) addr[13],
+                    (int) addr[14], (int) addr[15]);
 
             // reverse and add .ip6.arpa
             char reversed_ip_6[255];
             reverse_string(long_ipv6);
-            sprintf(reversed_ip_6, "%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.IP6.ARPA",
-                    long_ipv6[0], long_ipv6[1], long_ipv6[2], long_ipv6[3], long_ipv6[5], long_ipv6[6], long_ipv6[7], long_ipv6[8],
-                    long_ipv6[10], long_ipv6[11], long_ipv6[12], long_ipv6[13], long_ipv6[15], long_ipv6[16], long_ipv6[17], long_ipv6[18],
-                    long_ipv6[20], long_ipv6[21], long_ipv6[22], long_ipv6[23], long_ipv6[25], long_ipv6[26], long_ipv6[27], long_ipv6[28],
-                    long_ipv6[30], long_ipv6[31], long_ipv6[32], long_ipv6[33], long_ipv6[35], long_ipv6[36], long_ipv6[37], long_ipv6[38]);
+            sprintf(reversed_ip_6,
+                    "%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.%c.IP6.ARPA",
+                    long_ipv6[0], long_ipv6[1], long_ipv6[2], long_ipv6[3], long_ipv6[5], long_ipv6[6], long_ipv6[7],
+                    long_ipv6[8],
+                    long_ipv6[10], long_ipv6[11], long_ipv6[12], long_ipv6[13], long_ipv6[15], long_ipv6[16],
+                    long_ipv6[17], long_ipv6[18],
+                    long_ipv6[20], long_ipv6[21], long_ipv6[22], long_ipv6[23], long_ipv6[25], long_ipv6[26],
+                    long_ipv6[27], long_ipv6[28],
+                    long_ipv6[30], long_ipv6[31], long_ipv6[32], long_ipv6[33], long_ipv6[35], long_ipv6[36],
+                    long_ipv6[37], long_ipv6[38]);
 
             char *p = &reversed_ip_6[0];
             change_hostname_to_dns_query_name(query_name, &p);
-        }
-        else
-        {
+        } else {
             error_exit(EXIT_FAILURE, "Expected IPv4 or IPv6");
         }
-    }
-    else
-    {
+    } else {
         change_hostname_to_dns_query_name(query_name, &address);
     }
 
@@ -312,49 +300,40 @@ int main(int argc, char *argv[])
 
     // send datagram to dns server
     int returned_value;
-    returned_value = sendto(socket_fd, query, query_len, 0, (struct sockaddr *)&server_address, sizeof(server_address));
+    returned_value = sendto(socket_fd, query, query_len, 0, (struct sockaddr *) &server_address,
+                            sizeof(server_address));
     if (returned_value < 0)
         error_exit(EXIT_FAILURE, "Cannot send query");
 
     // set max time to wait for the response datagram
-    struct timeval timeout
-    {
-    };
+    struct timeval timeout {};
     timeout.tv_sec = 3;
     timeout.tv_usec = 0;
-    returned_value = setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof timeout);
+    returned_value = setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (char *) &timeout, sizeof timeout);
     if (returned_value < 0)
         error_exit(EXIT_FAILURE, "Timeout could not be set");
 
     // receive response or exit
     unsigned char response[65536];
     socklen_t response_length;
-    returned_value = recvfrom(socket_fd, response, sizeof(response), 0, (struct sockaddr *)&server_address, &response_length);
+    returned_value = recvfrom(socket_fd, response, sizeof(response), 0, (struct sockaddr *) &server_address,
+                              &response_length);
     if (returned_value < 0)
         error_exit(EXIT_FAILURE, "Receive error");
 
     struct DNS_HEADER *dns_response = nullptr;
-    dns_response = (struct DNS_HEADER *)response;
+    dns_response = (struct DNS_HEADER *) response;
 
     // check response code for errors
-    if (ntohs(dns_response->rcode) == 1)
-    {
+    if (ntohs(dns_response->rcode) == 1) {
         error_exit(EXIT_FAILURE, "Format error");
-    }
-    else if (ntohs(dns_response->rcode) == 2)
-    {
+    } else if (ntohs(dns_response->rcode) == 2) {
         error_exit(EXIT_FAILURE, "Server failure");
-    }
-    else if (ntohs(dns_response->rcode) == 3)
-    {
+    } else if (ntohs(dns_response->rcode) == 3) {
         error_exit(EXIT_FAILURE, "Name Error");
-    }
-    else if (ntohs(dns_response->rcode) == 4)
-    {
+    } else if (ntohs(dns_response->rcode) == 4) {
         error_exit(EXIT_FAILURE, "Not Implemented");
-    }
-    else if (ntohs(dns_response->rcode) == 5)
-    {
+    } else if (ntohs(dns_response->rcode) == 5) {
         error_exit(EXIT_FAILURE, "Refused");
     }
 
@@ -375,9 +354,7 @@ int main(int argc, char *argv[])
     // pointer to the last read data in response
     unsigned char *reader;
     int stop = 0;
-    struct RES_RECORD answer
-    {
-    };
+    struct RES_RECORD answer {};
 
     // print question section
     printf("Question section (%d)\n", ntohs(dns_response->q_count));
@@ -400,8 +377,7 @@ int main(int argc, char *argv[])
     stop = 0; // counter of bytes to skip
     // print answer section
     printf("Answer section (%d)\n", ntohs(dns_response->ans_count));
-    for (int i = 0; i < ntohs(dns_response->ans_count); i++)
-    {
+    for (int i = 0; i < ntohs(dns_response->ans_count); i++) {
         stop = 0;
         answer.name = read_raw_name(reader, response, &stop);
         printf("  %s, ", change_query_name_to_hostname(answer.name));
@@ -427,30 +403,25 @@ int main(int argc, char *argv[])
         printf("%d, ", s3);
         reader = reader + 2;
 
-        if (strcmp(c1, "A") == 0)
-        {
+        if (strcmp(c1, "A") == 0) {
             struct in_addr ipv4
-            {
-            };
+                    {
+                    };
             char type_A_string[INET_ADDRSTRLEN];
             memcpy(&ipv4, reader, 4);
             inet_ntop(AF_INET, &ipv4, type_A_string, INET_ADDRSTRLEN);
             printf("%s", type_A_string);
             reader = reader + 4;
-        }
-        else if (strcmp(c1, "AAAA") == 0)
-        {
+        } else if (strcmp(c1, "AAAA") == 0) {
             struct in6_addr ipv6
-            {
-            };
+                    {
+                    };
             char type_AAAA_string[INET6_ADDRSTRLEN];
             memcpy(&ipv6, reader, 16);
             inet_ntop(AF_INET6, &ipv6, type_AAAA_string, INET6_ADDRSTRLEN);
             printf("%s", type_AAAA_string);
             reader = reader + 16;
-        }
-        else
-        {
+        } else {
             answer.name = read_raw_name(reader, response, &stop);
             printf("%s", change_query_name_to_hostname(answer.name));
             reader = reader + stop;
@@ -460,8 +431,7 @@ int main(int argc, char *argv[])
 
     // print authority section
     printf("Authority section (%d)\n", ntohs(dns_response->auth_count));
-    for (int i = 0; i < ntohs(dns_response->auth_count); i++)
-    {
+    for (int i = 0; i < ntohs(dns_response->auth_count); i++) {
         stop = 0;
         answer.name = read_raw_name(reader, response, &stop);
         printf("  %s, ", change_query_name_to_hostname(answer.name));
@@ -487,30 +457,25 @@ int main(int argc, char *argv[])
         printf("%d, ", s3);
         reader = reader + 2;
 
-        if (strcmp(c1, "A") == 0)
-        {
+        if (strcmp(c1, "A") == 0) {
             struct in_addr ipv4
-            {
-            };
+                    {
+                    };
             char type_A_string[INET_ADDRSTRLEN];
             memcpy(&ipv4, reader, 4);
             inet_ntop(AF_INET, &ipv4, type_A_string, INET_ADDRSTRLEN);
             printf("%s", type_A_string);
             reader = reader + 4;
-        }
-        else if (strcmp(c1, "AAAA") == 0)
-        {
+        } else if (strcmp(c1, "AAAA") == 0) {
             struct in6_addr ipv6
-            {
-            };
+                    {
+                    };
             char type_AAAA_string[INET6_ADDRSTRLEN];
             memcpy(&ipv6, reader, 16);
             inet_ntop(AF_INET6, &ipv6, type_AAAA_string, INET6_ADDRSTRLEN);
             printf("%s", type_AAAA_string);
             reader = reader + 16;
-        }
-        else
-        {
+        } else {
             answer.name = read_raw_name(reader, response, &stop);
             printf("%s", change_query_name_to_hostname(answer.name));
             reader = reader + stop;
@@ -520,8 +485,7 @@ int main(int argc, char *argv[])
 
     // print additional section
     printf("Additional section (%d)\n", ntohs(dns_response->add_count));
-    for (int i = 0; i < ntohs(dns_response->add_count); i++)
-    {
+    for (int i = 0; i < ntohs(dns_response->add_count); i++) {
         stop = 0;
         answer.name = read_raw_name(reader, response, &stop);
         printf("  %s, ", change_query_name_to_hostname(answer.name));
@@ -547,30 +511,25 @@ int main(int argc, char *argv[])
         printf("%d, ", s3);
         reader = reader + 2;
 
-        if (strcmp(c1, "A") == 0)
-        {
+        if (strcmp(c1, "A") == 0) {
             struct in_addr ipv4
-            {
-            };
+                    {
+                    };
             char type_A_string[INET_ADDRSTRLEN];
             memcpy(&ipv4, reader, 4);
             inet_ntop(AF_INET, &ipv4, type_A_string, INET_ADDRSTRLEN);
             printf("%s", type_A_string);
             reader = reader + 4;
-        }
-        else if (strcmp(c1, "AAAA") == 0)
-        {
+        } else if (strcmp(c1, "AAAA") == 0) {
             struct in6_addr ipv6
-            {
-            };
+                    {
+                    };
             char type_AAAA_string[INET6_ADDRSTRLEN];
             memcpy(&ipv6, reader, 16);
             inet_ntop(AF_INET6, &ipv6, type_AAAA_string, INET6_ADDRSTRLEN);
             printf("%s", type_AAAA_string);
             reader = reader + 16;
-        }
-        else
-        {
+        } else {
             answer.name = read_raw_name(reader, response, &stop);
             printf("%s", change_query_name_to_hostname(answer.name));
             reader = reader + stop;
@@ -590,19 +549,15 @@ void get_arguments(int argc,
                    char **server,
                    int *port_flag,
                    int *port,
-                   char **address)
-{
-    if ((argc == 2) && (strcmp(argv[1], "-h") == 0))
-    {
+                   char **address) {
+    if ((argc == 2) && (strcmp(argv[1], "-h") == 0)) {
         help();
     }
-    if (argc < 4)
-    {
+    if (argc < 4) {
         help();
         error_exit(EXIT_FAILURE, "Too few arguments");
     }
-    if (argc > 9)
-    {
+    if (argc > 9) {
         help();
         error_exit(EXIT_FAILURE, "Too many arguments");
     }
@@ -610,47 +565,42 @@ void get_arguments(int argc,
     *address = argv[argc - 1];
 
     int c;
-    while ((c = getopt(argc, argv, "hrx6s:p:")) != -1)
-    {
-        switch (c)
-        {
-        case 'h':
-            *help_flag = 1;
-            break;
-        case 's':
-            *server_flag = 1;
-            *server = optarg;
-            break;
-        case 'r':
-            *recursion_flag = 1;
-            break;
-        case 'x':
-            *reverse_query_flag = 1;
-            break;
-        case '6':
-            *AAAA_flag = 1;
-            break;
-        case 'p':
-            *port_flag = 1;
-            try
-            {
-                *port = stoi(optarg);
-            }
-            catch (...)
-            {
-                error_exit(EXIT_FAILURE, "Cannot parse port number");
-            }
-            break;
-        default:
-            help();
-            error_exit(EXIT_FAILURE, "Wrong arguments");
-            break;
+    while ((c = getopt(argc, argv, "hrx6s:p:")) != -1) {
+        switch (c) {
+            case 'h':
+                *help_flag = 1;
+                break;
+            case 's':
+                *server_flag = 1;
+                *server = optarg;
+                break;
+            case 'r':
+                *recursion_flag = 1;
+                break;
+            case 'x':
+                *reverse_query_flag = 1;
+                break;
+            case '6':
+                *AAAA_flag = 1;
+                break;
+            case 'p':
+                *port_flag = 1;
+                try {
+                    *port = stoi(optarg);
+                }
+                catch (...) {
+                    error_exit(EXIT_FAILURE, "Cannot parse port number");
+                }
+                break;
+            default:
+                help();
+                error_exit(EXIT_FAILURE, "Wrong arguments");
+                break;
         }
     }
 }
 
-void help()
-{
+void help() {
     cout << "Použití: dns [-r] [-x] [-6] -s server [-p port] adresa\n";
     cout << "   -r: Požadována rekurze (Recursion Desired = 1)\n";
     cout << "   -x: Reverzní dotaz místo přímého.\n";
@@ -660,8 +610,7 @@ void help()
     exit(EXIT_SUCCESS);
 }
 
-void error_exit(int code, const char *msg)
-{
+void error_exit(int code, const char *msg) {
     fprintf(stderr, "ERROR: %s\n", msg);
     exit(code);
 }
@@ -674,8 +623,7 @@ void show_arguments(const int *help_flag,
                     char **server,
                     const int *port_flag,
                     const int *port,
-                    char **address)
-{
+                    char **address) {
     cout << "help_flag              " << *help_flag << "\n";
     cout << "recursion_flag         " << *recursion_flag << "\n";
     cout << "reverse_query_flag     " << *reverse_query_flag << "\n";
@@ -687,15 +635,13 @@ void show_arguments(const int *help_flag,
     cout << "address                " << *address << "\n";
 }
 
-void change_hostname_to_dns_query_name(char *query_name, char **address)
-{
+void change_hostname_to_dns_query_name(char *query_name, char **address) {
     unsigned int previous_index = 0;
     int length;
 
     strcpy(&query_name[1], *address);
 
-    while ((length = strcspn(&query_name[previous_index + 1], ".")) != 0)
-    {
+    while ((length = strcspn(&query_name[previous_index + 1], ".")) != 0) {
         query_name[previous_index] = length;
         previous_index = previous_index + length + 1;
     }
@@ -704,15 +650,13 @@ void change_hostname_to_dns_query_name(char *query_name, char **address)
 }
 
 // https://support.microsoft.com/sr-latn-me/help/831226/how-to-use-the-dnsquery-function-to-resolve-host-names-and-host-addres
-void reverse_IP(char *pIP)
-{
+void reverse_IP(char *pIP) {
     char seps[] = ".";
     char *token;
     char pIPSec[4][4];
     int i = 0;
     token = strtok(pIP, seps);
-    while (token != nullptr)
-    {
+    while (token != nullptr) {
         /* While there are "." characters in "string" */
         sprintf(pIPSec[i], "%s", token);
         /* Get next "." character: */
@@ -723,17 +667,14 @@ void reverse_IP(char *pIP)
 }
 
 // https://stackoverflow.com/questions/784417/reversing-a-string-in-c/784538#784538
-void reverse_string(char *str)
-{
+void reverse_string(char *str) {
     /* skip null */
-    if (str == 0)
-    {
+    if (str == 0) {
         return;
     }
 
     /* skip empty string */
-    if (*str == 0)
-    {
+    if (*str == 0) {
         return;
     }
 
@@ -743,8 +684,7 @@ void reverse_string(char *str)
     char temp;
 
     /* reverse */
-    while (end > start)
-    {
+    while (end > start) {
         /* swap */
         temp = *start;
         *start = *end;
@@ -757,99 +697,87 @@ void reverse_string(char *str)
 }
 
 // source https://gist.github.com/fffaraz/9d9170b57791c28ccda9255b48315168 [few changes from original]
-u_char *read_raw_name(unsigned char *reader, unsigned char *buffer, int *count)
-{
+u_char *read_raw_name(unsigned char *reader, unsigned char *buffer, int *count) {
     unsigned char *name;
     unsigned int p = 0, jumped = 0, offset;
 
     *count = 1;
-    name = (unsigned char *)malloc(256);
+    name = (unsigned char *) malloc(256);
 
     name[0] = '\0';
 
     //read dns raw names
-    while (*reader != 0)
-    {
-        if (*reader >= 192)
-        {
+    while (*reader != 0) {
+        if (*reader >= 192) {
             offset = (*reader) * 256 + *(reader + 1) - 49152; //49152 = 11000000 00000000 ;)
             reader = buffer + offset - 1;
             jumped = 1; //we have jumped to another location so counting wont go up!
-        }
-        else
-        {
+        } else {
             name[p++] = *reader;
         }
 
         reader = reader + 1;
 
-        if (jumped == 0)
-        {
+        if (jumped == 0) {
             *count = *count + 1; //if we havent jumped to another location then we can count up
         }
     }
 
     name[p] = '\0'; //string complete
-    if (jumped == 1)
-    {
+    if (jumped == 1) {
         *count = *count + 1; //number of steps we actually moved forward in the packet
     }
 
     return name;
 }
 
-const char *type2char(int type)
-{
+const char *type2char(int type) {
     type = ntohs(type);
-    switch (type)
-    {
-    case 1:
-        return "A";
-    case 2:
-        return "NS";
-    case 3:
-        return "MD";
-    case 4:
-        return "MF";
-    case 5:
-        return "CNAME";
-    case 6:
-        return "SOA";
-    case 7:
-        return "MB";
-    case 8:
-        return "MG";
-    case 9:
-        return "MR";
-    case 10:
-        return "NULL";
-    case 11:
-        return "WKS";
-    case 12:
-        return "PTR";
-    case 13:
-        return "HINFO";
-    case 14:
-        return "MINFO";
-    case 15:
-        return "MX";
-    case 16:
-        return "TXT";
-    case 28:
-        return "AAAA";
-    default:
-        return NULL;
+    switch (type) {
+        case 1:
+            return "A";
+        case 2:
+            return "NS";
+        case 3:
+            return "MD";
+        case 4:
+            return "MF";
+        case 5:
+            return "CNAME";
+        case 6:
+            return "SOA";
+        case 7:
+            return "MB";
+        case 8:
+            return "MG";
+        case 9:
+            return "MR";
+        case 10:
+            return "NULL";
+        case 11:
+            return "WKS";
+        case 12:
+            return "PTR";
+        case 13:
+            return "HINFO";
+        case 14:
+            return "MINFO";
+        case 15:
+            return "MX";
+        case 16:
+            return "TXT";
+        case 28:
+            return "AAAA";
+        default:
+            return NULL;
     }
 }
 
-unsigned char *change_query_name_to_hostname(unsigned char *name)
-{
+unsigned char *change_query_name_to_hostname(unsigned char *name) {
     unsigned int p;
-    for (int i = 0; i < (int)strlen((const char *)name); i++)
-    {
+    for (int i = 0; i < (int) strlen((const char *) name); i++) {
         p = name[i];
-        for (int j = 0; j < (int)p; j++)
-        {
+        for (int j = 0; j < (int) p; j++) {
             name[i] = name[i + 1];
             i = i + 1;
         }
