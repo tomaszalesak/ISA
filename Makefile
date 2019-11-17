@@ -56,5 +56,5 @@ push: clean
 	rsync -avuzz -e ssh -v /mnt/e/Škola/ISA/project/ eva:~/isa
 
 mem: all
-	valgrind ./dns -r -x -6 -s kazi.fit.vutbr.cz -p 1234 www.fit.vut.cz
+	valgrind ./dns -r -s kazi.fit.vutbr.cz www.ietf.org
 
