@@ -1,7 +1,7 @@
 // ISA project 2019: DNS resolver
 // Tomáš Zálešák
 // xzales13
-// 
+//
 // Sources:     https://tools.ietf.org/html/rfc3596
 //              https://tools.ietf.org/html/rfc1035
 //              https://wis.fit.vutbr.cz/FIT/st/cfs.php?file=%2Fcourse%2FISA-IT%2Fexamples%2Fexamples.zip&cid=13349
@@ -164,7 +164,9 @@ int main(int argc, char *argv[])
     if (!port_flag)
         port = 53;
 
-    struct sockaddr_in server_address{};
+    struct sockaddr_in server_address
+    {
+    };
     struct hostent *server_entity;
 
     memset(&server_address, 0, sizeof(server_address));
@@ -192,7 +194,9 @@ int main(int argc, char *argv[])
     char query[255];
     int query_len;
 
-    struct DNS_HEADER dns_header{};
+    struct DNS_HEADER dns_header
+    {
+    };
 
     char query_name[255];
     int index_after_query_name;
@@ -250,7 +254,7 @@ int main(int argc, char *argv[])
             char *p = &reversed_ip[0];
             change_hostname_to_dns_query_name(query_name, &p);
         }
-            // IPv6 dns query name setup
+        // IPv6 dns query name setup
         else if (strchr(address, ':') != nullptr)
         {
             unsigned char addr[16];
@@ -313,7 +317,9 @@ int main(int argc, char *argv[])
         error_exit(EXIT_FAILURE, "Cannot send query");
 
     // set max time to wait for the response datagram
-    struct timeval timeout{};
+    struct timeval timeout
+    {
+    };
     timeout.tv_sec = 3;
     timeout.tv_usec = 0;
     returned_value = setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof timeout);
@@ -369,7 +375,9 @@ int main(int argc, char *argv[])
     // pointer to the last read data in response
     unsigned char *reader;
     int stop = 0;
-    struct RES_RECORD answer{};
+    struct RES_RECORD answer
+    {
+    };
 
     // print question section
     printf("Question section (%d)\n", ntohs(dns_response->q_count));
@@ -421,7 +429,9 @@ int main(int argc, char *argv[])
 
         if (strcmp(c1, "A") == 0)
         {
-            struct in_addr ipv4{};
+            struct in_addr ipv4
+            {
+            };
             char type_A_string[INET_ADDRSTRLEN];
             memcpy(&ipv4, reader, 4);
             inet_ntop(AF_INET, &ipv4, type_A_string, INET_ADDRSTRLEN);
@@ -430,7 +440,9 @@ int main(int argc, char *argv[])
         }
         else if (strcmp(c1, "AAAA") == 0)
         {
-            struct in6_addr ipv6{};
+            struct in6_addr ipv6
+            {
+            };
             char type_AAAA_string[INET6_ADDRSTRLEN];
             memcpy(&ipv6, reader, 16);
             inet_ntop(AF_INET6, &ipv6, type_AAAA_string, INET6_ADDRSTRLEN);
@@ -477,7 +489,9 @@ int main(int argc, char *argv[])
 
         if (strcmp(c1, "A") == 0)
         {
-            struct in_addr ipv4{};
+            struct in_addr ipv4
+            {
+            };
             char type_A_string[INET_ADDRSTRLEN];
             memcpy(&ipv4, reader, 4);
             inet_ntop(AF_INET, &ipv4, type_A_string, INET_ADDRSTRLEN);
@@ -486,7 +500,9 @@ int main(int argc, char *argv[])
         }
         else if (strcmp(c1, "AAAA") == 0)
         {
-            struct in6_addr ipv6{};
+            struct in6_addr ipv6
+            {
+            };
             char type_AAAA_string[INET6_ADDRSTRLEN];
             memcpy(&ipv6, reader, 16);
             inet_ntop(AF_INET6, &ipv6, type_AAAA_string, INET6_ADDRSTRLEN);
@@ -533,7 +549,9 @@ int main(int argc, char *argv[])
 
         if (strcmp(c1, "A") == 0)
         {
-            struct in_addr ipv4{};
+            struct in_addr ipv4
+            {
+            };
             char type_A_string[INET_ADDRSTRLEN];
             memcpy(&ipv4, reader, 4);
             inet_ntop(AF_INET, &ipv4, type_A_string, INET_ADDRSTRLEN);
@@ -542,7 +560,9 @@ int main(int argc, char *argv[])
         }
         else if (strcmp(c1, "AAAA") == 0)
         {
-            struct in6_addr ipv6{};
+            struct in6_addr ipv6
+            {
+            };
             char type_AAAA_string[INET6_ADDRSTRLEN];
             memcpy(&ipv6, reader, 16);
             inet_ntop(AF_INET6, &ipv6, type_AAAA_string, INET6_ADDRSTRLEN);
@@ -594,37 +614,37 @@ void get_arguments(int argc,
     {
         switch (c)
         {
-            case 'h':
-                *help_flag = 1;
-                break;
-            case 's':
-                *server_flag = 1;
-                *server = optarg;
-                break;
-            case 'r':
-                *recursion_flag = 1;
-                break;
-            case 'x':
-                *reverse_query_flag = 1;
-                break;
-            case '6':
-                *AAAA_flag = 1;
-                break;
-            case 'p':
-                *port_flag = 1;
-                try
-                {
-                    *port = stoi(optarg);
-                }
-                catch (...)
-                {
-                    error_exit(EXIT_FAILURE, "Cannot parse port number");
-                }
-                break;
-            default:
-                help();
-                error_exit(EXIT_FAILURE, "Wrong arguments");
-                break;
+        case 'h':
+            *help_flag = 1;
+            break;
+        case 's':
+            *server_flag = 1;
+            *server = optarg;
+            break;
+        case 'r':
+            *recursion_flag = 1;
+            break;
+        case 'x':
+            *reverse_query_flag = 1;
+            break;
+        case '6':
+            *AAAA_flag = 1;
+            break;
+        case 'p':
+            *port_flag = 1;
+            try
+            {
+                *port = stoi(optarg);
+            }
+            catch (...)
+            {
+                error_exit(EXIT_FAILURE, "Cannot parse port number");
+            }
+            break;
+        default:
+            help();
+            error_exit(EXIT_FAILURE, "Wrong arguments");
+            break;
         }
     }
 }
@@ -783,42 +803,42 @@ const char *type2char(int type)
     type = ntohs(type);
     switch (type)
     {
-        case 1:
-            return "A";
-        case 2:
-            return "NS";
-        case 3:
-            return "MD";
-        case 4:
-            return "MF";
-        case 5:
-            return "CNAME";
-        case 6:
-            return "SOA";
-        case 7:
-            return "MB";
-        case 8:
-            return "MG";
-        case 9:
-            return "MR";
-        case 10:
-            return "NULL";
-        case 11:
-            return "WKS";
-        case 12:
-            return "PTR";
-        case 13:
-            return "HINFO";
-        case 14:
-            return "MINFO";
-        case 15:
-            return "MX";
-        case 16:
-            return "TXT";
-        case 28:
-            return "AAAA";
-        default:
-            return NULL;
+    case 1:
+        return "A";
+    case 2:
+        return "NS";
+    case 3:
+        return "MD";
+    case 4:
+        return "MF";
+    case 5:
+        return "CNAME";
+    case 6:
+        return "SOA";
+    case 7:
+        return "MB";
+    case 8:
+        return "MG";
+    case 9:
+        return "MR";
+    case 10:
+        return "NULL";
+    case 11:
+        return "WKS";
+    case 12:
+        return "PTR";
+    case 13:
+        return "HINFO";
+    case 14:
+        return "MINFO";
+    case 15:
+        return "MX";
+    case 16:
+        return "TXT";
+    case 28:
+        return "AAAA";
+    default:
+        return NULL;
     }
 }
 
