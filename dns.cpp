@@ -158,9 +158,7 @@ int main(int argc, char *argv[]) {
     if (!port_flag)
         port = 53;
 
-    struct sockaddr_in server_address
-            {
-            };
+    struct sockaddr_in server_address {};
     struct hostent *server_entity;
 
     memset(&server_address, 0, sizeof(server_address));
