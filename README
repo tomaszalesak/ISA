@@ -1,0 +1,79 @@
+# Popis programu
+DNS resolver implementovaný v jazyce C++. Program vytvoří DNS dotaz dle zadaných parametrů, pošle dotaz pomocí UDP protokolu, přijme odpověď a vypíše detajly na standardní výstup. Pro přijetí bude čekat maximálně 3s, pak případně vypíše, že vypršel timeout. Podporuje typy A, AAAA, PTR a CNAME v odpovědi.
+
+# Překlad
+Program přeložíme zadáním příkazu `make`.
+
+# Spuštění a parametry
+Použití: `dns [-r] [-x] [-6] -s server [-p port] adresa`
+
+Pořadí parametrů je libovolné. Popis parametrů:
+* -r: Požadována rekurze (Recursion Desired = 1), jinak bez rekurze.
+* -x: Reverzní dotaz místo přímého.
+* -6: Dotaz typu AAAA místo výchozího A.
+* -s: IP adresa nebo doménové jméno serveru, kam se má zaslat dotaz.
+* -p port: Číslo portu, na který se má poslat dotaz, výchozí 53.
+* adresa: Dotazovaná adresa.
+
+## Formát výstupu
+```
+Authoritative: Yes/No, Recursive: Yes/No, Truncated: Yes/No
+Question section (number of questions)
+  domain name, type of the query, class of the query
+  ...
+Answer section (number of questions)
+  domain name, type of the query, class of the query, TTL, resource data
+  ...
+Authority section (number of authority section records)
+  domain name, type of the query, class of the query, TTL, resource data
+  ...
+Additional section (number of additional section recors)
+  domain name, type of the query, class of the query, TTL, resource data
+  ...
+```
+
+## Příklady spuštění a výstupu
+```
+./dns -r -s kazi.fit.vutbr.cz www.ietf.org
+Authoritative: No, Recursive: Yes, Truncated: No
+Question section (1)
+  www.ietf.org., A, IN
+Answer section (3)
+  www.ietf.org., CNAME, IN, 1138, 33, www.ietf.org.cdn.cloudflare.net.
+  www.ietf.org.cdn.cloudflare.net., A, IN, 4, 104.20.0.85
+  www.ietf.org.cdn.cloudflare.net., A, IN, 4, 104.20.1.85
+Authority section (0)
+Additional section (0)
+```
+```
+./dns -r -6 -s 8.8.8.8 www.seznam.cz
+Authoritative: No, Recursive: Yes, Truncated: No
+Question section (1)
+  www.seznam.cz., AAAA, IN
+Answer section (4)
+  www.seznam.cz., AAAA, IN, 72, 2a02:598:3333:1::2
+  www.seznam.cz., AAAA, IN, 72, 2a02:598:4444:1::1
+  www.seznam.cz., AAAA, IN, 72, 2a02:598:4444:1::2
+  www.seznam.cz., AAAA, IN, 72, 2a02:598:3333:1::1
+Authority section (0)
+Additional section (0)
+```
+```
+./dns -r -x -s kazi.fit.vutbr.cz 8.8.8.8
+Authoritative: No, Recursive: Yes, Truncated: No
+Question section (1)
+  8.8.8.8.IN-ADDR.ARPA., PTR, IN
+Answer section (1)
+  8.8.8.8.IN-ADDR.ARPA., PTR, IN, 86400, dns.google.
+Authority section (0)
+Additional section (0)
+```
+
+# Testy
+Testy se spustí příkazem `make test`. Jedná se pouze o bash skript, který několikrát spustí program s různými parametry. Výstup je vypsán na standardní výstup. Výsledky byly porovnány s výstupem programu `dig`.
+
+# Seznam odevzdaných souborů
+* dns.cpp
+* Makefile
+* manual.pdf
+* README

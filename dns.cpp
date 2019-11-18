@@ -394,10 +394,6 @@ int main(int argc, char *argv[]) {
         printf("%d, ", ntohl(s2));
         reader = reader + 4;
 
-        u_int16_t s3;
-        memcpy(&s3, reader, 2);
-        s3 = ntohs(s3);
-        printf("%d, ", s3);
         reader = reader + 2;
 
         if (strcmp(c1, "A") == 0) {
@@ -448,10 +444,6 @@ int main(int argc, char *argv[]) {
         printf("%d, ", ntohl(s2));
         reader = reader + 4;
 
-        u_int16_t s3;
-        memcpy(&s3, reader, 2);
-        s3 = ntohs(s3);
-        printf("%d, ", s3);
         reader = reader + 2;
 
         if (strcmp(c1, "A") == 0) {
@@ -502,10 +494,6 @@ int main(int argc, char *argv[]) {
         printf("%d, ", ntohl(s2));
         reader = reader + 4;
 
-        u_int16_t s3;
-        memcpy(&s3, reader, 2);
-        s3 = ntohs(s3);
-        printf("%d, ", s3);
         reader = reader + 2;
 
         if (strcmp(c1, "A") == 0) {
