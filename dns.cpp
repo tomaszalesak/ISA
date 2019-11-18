@@ -1,6 +1,6 @@
 // ISA project 2019: DNS resolver
 // Tomáš Zálešák
-// xzales13
+// xzales13@stud.fit.vutbr.cz
 //
 // Sources:     https://tools.ietf.org/html/rfc3596
 //              https://tools.ietf.org/html/rfc1035
@@ -28,6 +28,8 @@
 
 using namespace std;
 
+/////////////////////////////////////////////////////////////////////////
+// https://gist.github.com/fffaraz/9d9170b57791c28ccda9255b48315168
 // DNS header structure
 struct DNS_HEADER {
     unsigned short id; // identification number
@@ -49,13 +51,11 @@ struct DNS_HEADER {
     unsigned short auth_count; // number of authority entries
     unsigned short add_count;  // number of resource entries
 };
-
 //Constant sized fields of query structure
 struct QUESTION {
     unsigned short qtype;
     unsigned short qclass;
 };
-
 //Constant sized fields of the resource record structure
 #pragma pack(push, 1)
 struct R_DATA {
@@ -65,19 +65,18 @@ struct R_DATA {
     unsigned short data_len;
 };
 #pragma pack(pop)
-
 //Pointers to resource record contents
 struct RES_RECORD {
     unsigned char *name;
     struct R_DATA *resource;
     unsigned char *rdata;
 };
-
 //Structure of a Query
 typedef struct {
     unsigned char *name;
     struct QUESTION *ques;
 } QUERY;
+/////////////////////////////////////////////////////////////////////////
 
 // Function prototypes
 // parse and return args
@@ -647,6 +646,7 @@ void change_hostname_to_dns_query_name(char *query_name, char **address) {
         query_name[previous_index] = 0;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // https://support.microsoft.com/sr-latn-me/help/831226/how-to-use-the-dnsquery-function-to-resolve-host-names-and-host-addres
 void reverse_IP(char *pIP) {
     char seps[] = ".";
@@ -663,7 +663,9 @@ void reverse_IP(char *pIP) {
     }
     sprintf(pIP, "%s.%s.%s.%s.%s", pIPSec[3], pIPSec[2], pIPSec[1], pIPSec[0], "IN-ADDR.ARPA");
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // https://stackoverflow.com/questions/784417/reversing-a-string-in-c/784538#784538
 void reverse_string(char *str) {
     /* skip null */
@@ -693,7 +695,9 @@ void reverse_string(char *str) {
         --end;
     }
 }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // source https://gist.github.com/fffaraz/9d9170b57791c28ccda9255b48315168 [few changes from original]
 u_char *read_raw_name(unsigned char *reader, unsigned char *buffer, int *count) {
     unsigned char *name;
@@ -728,6 +732,7 @@ u_char *read_raw_name(unsigned char *reader, unsigned char *buffer, int *count) 
 
     return name;
 }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 const char *type2char(int type) {
     type = ntohs(type);
